@@ -226,9 +226,20 @@ const RoomCard = ({ room, onUpdate }) => {
 
 // ボード画面
 const BoardScreen = ({ user, rooms, onUpdateRoom, onResetRequest, onLogout }) => {
+    const [allDone, setAllDone] = useState(false);
     return (
         <div className="min-h-screen bg-slate-50 text-slate-800 font-sans">
             <header className="bg-white shadow-md border-b border-slate-200 sticky top-0 z-20">
+                <div
+                    onClick={() => setAllDone(!allDone)}
+                    className={`w-full py-2 px-4 text-center font-bold cursor-pointer select-none transition-all duration-300 text-sm ${
+                        allDone
+                            ? 'bg-emerald-500 text-white'
+                            : 'bg-gray-200 text-gray-400 hover:bg-gray-300'
+                    }`}
+                >
+                    すべての方の個別相談誘導が終了しました
+                </div>
                 <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
                     <div className="flex items-center gap-3">
                         <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 text-blue-600 font-bold">
