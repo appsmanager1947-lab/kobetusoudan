@@ -20,6 +20,8 @@ const Footprints = (props) => <IconBase {...props} d={<><path d="M4 16v-2.38C4 1
 const AlertTriangle = (props) => <IconBase {...props} d={<><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></>} />;
 const LogOut = (props) => <IconBase {...props} d={<><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></>} />;
 const MicrosoftLogo = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 23 23"><path fill="#f35325" d="M1 1h10v10H1z"/><path fill="#81bc06" d="M12 1h10v10H12z"/><path fill="#05a6f0" d="M1 12h10v10H1z"/><path fill="#ffba08" d="M12 12h10v10H12z"/></svg>;
+const ExternalLink = (props) => <IconBase {...props} d={<><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></>} />;
+const Pencil = (props) => <IconBase {...props} d={<><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></>} />;
 
 
 // --- 設定値 & 定数 ---
@@ -227,6 +229,26 @@ const RoomCard = ({ room, onUpdate }) => {
 // ボード画面
 const BoardScreen = ({ user, rooms, onUpdateRoom, onResetRequest, onLogout }) => {
     const [allDone, setAllDone] = useState(false);
+    const [formUrl, setFormUrl] = useState(() => localStorage.getItem('formUrl') || '');
+    const [isEditingFormUrl, setIsEditingFormUrl] = useState(false);
+    const [tempFormUrl, setTempFormUrl] = useState('');
+
+    const handleEditFormUrl = () => {
+        setTempFormUrl(formUrl);
+        setIsEditingFormUrl(true);
+    };
+
+    const handleSaveFormUrl = () => {
+        const trimmed = tempFormUrl.trim();
+        setFormUrl(trimmed);
+        localStorage.setItem('formUrl', trimmed);
+        setIsEditingFormUrl(false);
+    };
+
+    const handleCancelFormUrl = () => {
+        setIsEditingFormUrl(false);
+    };
+
     return (
         <div className="min-h-screen bg-slate-50 text-slate-800 font-sans">
             <header className="bg-white shadow-md border-b border-slate-200 sticky top-0 z-20">
@@ -269,6 +291,46 @@ const BoardScreen = ({ user, rooms, onUpdateRoom, onResetRequest, onLogout }) =>
                             const miniBoxClass = `w-7 h-7 sm:w-9 sm:h-9 rounded-md flex items-center justify-center text-[10px] sm:text-xs font-bold text-white transition-all duration-300 shadow-sm border border-black/5 overflow-hidden ${getMiniStatusColor(room)}`;
                             return <div key={room.id} title={tooltip} className={miniBoxClass}>{room.name ? room.name.slice(0, 2) : room.roomNumber}</div>;
                         })}
+                    </div>
+
+                    <div className="flex items-center justify-center gap-2 mt-2 pt-2 border-t border-slate-100">
+                        {isEditingFormUrl ? (
+                            <div className="flex items-center gap-2 w-full max-w-lg">
+                                <input
+                                    type="url"
+                                    value={tempFormUrl}
+                                    onChange={(e) => setTempFormUrl(e.target.value)}
+                                    placeholder="https://..."
+                                    autoFocus
+                                    onKeyDown={(e) => { if (e.key === 'Enter') handleSaveFormUrl(); if (e.key === 'Escape') handleCancelFormUrl(); }}
+                                    className="flex-1 px-3 py-1 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-400 outline-none text-slate-700"
+                                />
+                                <button onClick={handleSaveFormUrl} className="px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-lg hover:bg-blue-600 transition-colors">保存</button>
+                                <button onClick={handleCancelFormUrl} className="px-3 py-1 bg-slate-200 text-slate-600 text-xs rounded-lg hover:bg-slate-300 transition-colors">キャンセル</button>
+                            </div>
+                        ) : (
+                            <>
+                                {formUrl ? (
+                                    <a
+                                        href={formUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-1.5 px-4 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-full shadow-sm transition-colors"
+                                    >
+                                        <ExternalLink size={14} />
+                                        入力フォームへ
+                                    </a>
+                                ) : (
+                                    <span className="text-xs text-slate-400 italic">入力フォームのURLが未設定です</span>
+                                )}
+                                <button
+                                    onClick={handleEditFormUrl}
+                                    className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 px-2 py-1 hover:bg-slate-100 rounded-lg transition-colors border border-transparent hover:border-slate-200"
+                                >
+                                    <Pencil size={12} /> URLを編集
+                                </button>
+                            </>
+                        )}
                     </div>
                 </div>
             </header>
