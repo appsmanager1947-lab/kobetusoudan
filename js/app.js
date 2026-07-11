@@ -227,8 +227,7 @@ const RoomCard = ({ room, onUpdate }) => {
 };
 
 // ボード画面
-const BoardScreen = ({ user, rooms, formUrl, onUpdateFormUrl, onUpdateRoom, onResetRequest, onLogout }) => {
-    const [allDone, setAllDone] = useState(false);
+const BoardScreen = ({ user, rooms, allDone, onUpdateAllDone, formUrl, onUpdateFormUrl, onUpdateRoom, onResetRequest, onLogout }) => {
     const [isEditingFormUrl, setIsEditingFormUrl] = useState(false);
     const [tempFormUrl, setTempFormUrl] = useState('');
 
@@ -251,7 +250,7 @@ const BoardScreen = ({ user, rooms, formUrl, onUpdateFormUrl, onUpdateRoom, onRe
         <div className="min-h-screen bg-slate-50 text-slate-800 font-sans">
             <header className="bg-white shadow-md border-b border-slate-200 sticky top-0 z-20">
                 <div
-                    onClick={() => setAllDone(!allDone)}
+                    onClick={() => onUpdateAllDone(!allDone)}
                     className={`w-full py-2 px-4 text-center font-bold cursor-pointer select-none transition-all duration-300 text-sm ${
                         allDone
                             ? 'bg-emerald-500 text-white'
@@ -355,6 +354,7 @@ const App = () => {
     const [user, setUser] = useState(null);
     const [rooms, setRooms] = useState([]);
     const [formUrl, setFormUrl] = useState('');
+    const [allDone, setAllDone] = useState(false);
     const [showResetConfirm, setShowResetConfirm] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [firebaseReady, setFirebaseReady] = useState(!!window.FirebaseServices);
@@ -415,6 +415,20 @@ const App = () => {
         return () => unsubscribe();
     }, [firebaseReady, user, db]);
 
+    // 「全て終了」バナーの同期 (ログイン時のみ)
+    useEffect(() => {
+        if (!firebaseReady || !user || !db) return;
+
+        const allDoneRef = ref(db, 'allDone');
+        const unsubscribe = onValue(allDoneRef, (snapshot) => {
+            setAllDone(!!snapshot.val());
+        }, (error) => {
+            console.error("allDone の読み込みに失敗しました:", error);
+        });
+
+        return () => unsubscribe();
+    }, [firebaseReady, user, db]);
+
     const handleLogin = async () => {
         try {
             await signInWithMicrosoft();
@@ -450,6 +464,13 @@ const App = () => {
         });
     };
 
+    const handleUpdateAllDone = (value) => {
+        if (!user) return;
+        set(ref(db, 'allDone'), value).catch((error) => {
+            console.error("allDone の保存に失敗しました:", error);
+        });
+    };
+
     const executeReset = () => {
         if (!user) return;
         const roomsRef = ref(db, 'rooms');
@@ -474,6 +495,8 @@ const App = () => {
             <BoardScreen
                 user={user}
                 rooms={rooms}
+                allDone={allDone}
+                onUpdateAllDone={handleUpdateAllDone}
                 formUrl={formUrl}
                 onUpdateFormUrl={handleUpdateFormUrl}
                 onUpdateRoom={handleUpdateRoom}
