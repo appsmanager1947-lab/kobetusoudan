@@ -408,6 +408,8 @@ const App = () => {
         const formUrlRef = ref(db, 'formUrl');
         const unsubscribe = onValue(formUrlRef, (snapshot) => {
             setFormUrl(snapshot.val() || '');
+        }, (error) => {
+            console.error("formUrl の読み込みに失敗しました:", error);
         });
 
         return () => unsubscribe();
@@ -442,7 +444,10 @@ const App = () => {
 
     const handleUpdateFormUrl = (url) => {
         if (!user) return;
-        set(ref(db, 'formUrl'), url);
+        set(ref(db, 'formUrl'), url).catch((error) => {
+            console.error("formUrl の保存に失敗しました:", error);
+            alert("入力フォームURLの保存に失敗しました: " + error.message);
+        });
     };
 
     const executeReset = () => {
