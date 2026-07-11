@@ -227,9 +227,8 @@ const RoomCard = ({ room, onUpdate }) => {
 };
 
 // ボード画面
-const BoardScreen = ({ user, rooms, onUpdateRoom, onResetRequest, onLogout }) => {
+const BoardScreen = ({ user, rooms, formUrl, onUpdateFormUrl, onUpdateRoom, onResetRequest, onLogout }) => {
     const [allDone, setAllDone] = useState(false);
-    const [formUrl, setFormUrl] = useState(() => localStorage.getItem('formUrl') || '');
     const [isEditingFormUrl, setIsEditingFormUrl] = useState(false);
     const [tempFormUrl, setTempFormUrl] = useState('');
 
@@ -240,8 +239,7 @@ const BoardScreen = ({ user, rooms, onUpdateRoom, onResetRequest, onLogout }) =>
 
     const handleSaveFormUrl = () => {
         const trimmed = tempFormUrl.trim();
-        setFormUrl(trimmed);
-        localStorage.setItem('formUrl', trimmed);
+        onUpdateFormUrl(trimmed);
         setIsEditingFormUrl(false);
     };
 
@@ -356,6 +354,7 @@ const BoardScreen = ({ user, rooms, onUpdateRoom, onResetRequest, onLogout }) =>
 const App = () => {
     const [user, setUser] = useState(null);
     const [rooms, setRooms] = useState([]);
+    const [formUrl, setFormUrl] = useState('');
     const [showResetConfirm, setShowResetConfirm] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [firebaseReady, setFirebaseReady] = useState(!!window.FirebaseServices);
@@ -402,6 +401,18 @@ const App = () => {
         return () => unsubscribe();
     }, [firebaseReady, user, db]);
 
+    // 入力フォームURLの同期 (ログイン時のみ)
+    useEffect(() => {
+        if (!firebaseReady || !user || !db) return;
+
+        const formUrlRef = ref(db, 'formUrl');
+        const unsubscribe = onValue(formUrlRef, (snapshot) => {
+            setFormUrl(snapshot.val() || '');
+        });
+
+        return () => unsubscribe();
+    }, [firebaseReady, user, db]);
+
     const handleLogin = async () => {
         try {
             await signInWithMicrosoft();
@@ -429,6 +440,11 @@ const App = () => {
         });
     };
 
+    const handleUpdateFormUrl = (url) => {
+        if (!user) return;
+        set(ref(db, 'formUrl'), url);
+    };
+
     const executeReset = () => {
         if (!user) return;
         const roomsRef = ref(db, 'rooms');
@@ -453,6 +469,8 @@ const App = () => {
             <BoardScreen
                 user={user}
                 rooms={rooms}
+                formUrl={formUrl}
+                onUpdateFormUrl={handleUpdateFormUrl}
                 onUpdateRoom={handleUpdateRoom}
                 onResetRequest={() => setShowResetConfirm(true)}
                 onLogout={handleLogout}
