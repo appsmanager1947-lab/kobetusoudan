@@ -56,15 +56,19 @@ const STATUS_CONFIG = {
     },
 };
 
-const generateInitialRooms = () => Array.from({ length: 18 }, (_, i) => ({
-    id: `room-${i + 1}`,
-    roomNumber: `${i + 1}`,
+const ROOM_COUNT = 21;
+
+const createRoom = (num) => ({
+    id: `room-${num}`,
+    roomNumber: `${num}`,
     name: '',
     status: 'inactive',
     isGuiding: false,
     message: '',
     updatedAt: new Date().toISOString(),
-}));
+});
+
+const generateInitialRooms = () => Array.from({ length: ROOM_COUNT }, (_, i) => createRoom(i + 1));
 
 const getMiniStatusColor = (room) => {
     if (room.isGuiding) return 'bg-violet-500 animate-pulse ring-2 ring-violet-300';
@@ -185,8 +189,8 @@ const RoomCard = ({ room, onUpdate }) => {
 
     const cardClassName = `relative flex flex-col p-4 rounded-xl border-2 transition-all duration-300 ${currentConfig.color} shadow-sm`;
     const operationAreaClassName = `flex flex-col gap-2 mt-auto transition-opacity duration-300 ${room.name ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`;
-    const guidingButtonClass = `flex-none w-1/3 flex flex-col items-center justify-center p-2 rounded-lg text-xs font-bold transition-all duration-200 active:scale-95 ${
-        room.isGuiding ? 'bg-violet-500 text-white ring-2 ring-offset-1 ring-violet-500 shadow-md' : 'bg-violet-100 text-violet-700 hover:bg-violet-200'
+    const guidingButtonClass = `flex flex-col items-center justify-center p-2 rounded-lg text-xs font-bold transition-all duration-200 active:scale-95 ${
+        room.isGuiding ? 'bg-violet-500 text-white ring-2 ring-offset-1 ring-violet-500 shadow-md scale-105' : 'bg-violet-100 text-violet-700 hover:bg-violet-200 opacity-60 hover:opacity-100'
     }`;
 
     return (
@@ -211,15 +215,19 @@ const RoomCard = ({ room, onUpdate }) => {
                 </div>
             </div>
             <div className={operationAreaClassName}>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
+                    <button onClick={() => handleStatusClick('available')} className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-bold transition-transform active:scale-95 ${room.status === 'available' ? 'ring-2 ring-offset-1 ring-emerald-500 shadow-md scale-105' : 'opacity-60 hover:opacity-100'} ${STATUS_CONFIG.AVAILABLE.buttonColor}`}><CheckCircle size={16} className="mb-1" />空き</button>
                     <button onClick={() => handleStatusClick('meeting')} className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-bold transition-transform active:scale-95 ${room.status === 'meeting' ? 'ring-2 ring-offset-1 ring-rose-500 shadow-md scale-105' : 'opacity-60 hover:opacity-100'} ${STATUS_CONFIG.MEETING.buttonColor}`}><MessageSquare size={16} className="mb-1" />面談</button>
                     <button onClick={() => handleStatusClick('writing')} className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-bold transition-transform active:scale-95 ${room.status === 'writing' ? 'ring-2 ring-offset-1 ring-amber-500 shadow-md scale-105' : 'opacity-60 hover:opacity-100'} ${STATUS_CONFIG.WRITING.buttonColor}`}><PenTool size={16} className="mb-1" />入力</button>
-                    <button onClick={() => handleStatusClick('available')} className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-bold transition-transform active:scale-95 ${room.status === 'available' ? 'ring-2 ring-offset-1 ring-emerald-500 shadow-md scale-105' : 'opacity-60 hover:opacity-100'} ${STATUS_CONFIG.AVAILABLE.buttonColor}`}><CheckCircle size={16} className="mb-1" />空き</button>
-                </div>
-                <div className="flex gap-2">
                     <button onClick={handleGuidingClick} className={guidingButtonClass}><Footprints size={16} className="mb-1" />誘導中</button>
-                    <input type="text" value={room.message || ''} onChange={handleMessageChange} placeholder="Memo..." className="flex-1 min-w-0 px-3 py-1 rounded-lg text-sm bg-white/60 border border-white/40 focus:bg-white focus:ring-2 focus:ring-blue-400 outline-none placeholder-gray-400 text-gray-700" />
                 </div>
+                <textarea
+                    value={room.message || ''}
+                    onChange={handleMessageChange}
+                    placeholder="Memo..."
+                    rows={2}
+                    className="w-full px-3 py-1.5 rounded-lg text-sm bg-white/60 border border-white/40 focus:bg-white focus:ring-2 focus:ring-blue-400 outline-none placeholder-gray-400 text-gray-700 resize-none"
+                />
             </div>
             {!room.name && <div className="absolute bottom-4 left-0 w-full text-center text-xs opacity-50 pointer-events-none">名前を入力して開始</div>}
         </div>
@@ -389,7 +397,17 @@ const App = () => {
         const unsubscribe = onValue(roomsRef, (snapshot) => {
             const data = snapshot.val();
             if (data) {
-                setRooms(data);
+                const currentRooms = Array.isArray(data) ? data : Object.values(data);
+                if (currentRooms.length < ROOM_COUNT) {
+                    const extendedRooms = [
+                        ...currentRooms,
+                        ...Array.from({ length: ROOM_COUNT - currentRooms.length }, (_, i) => createRoom(currentRooms.length + i + 1))
+                    ];
+                    set(roomsRef, extendedRooms);
+                    setRooms(extendedRooms);
+                } else {
+                    setRooms(currentRooms);
+                }
             } else {
                 const initial = generateInitialRooms();
                 set(roomsRef, initial);
@@ -468,6 +486,7 @@ const App = () => {
         if (!user) return;
         set(ref(db, 'allDone'), value).catch((error) => {
             console.error("allDone の保存に失敗しました:", error);
+            alert("バナーの状態保存に失敗しました: " + error.message);
         });
     };
 
